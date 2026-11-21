@@ -11,5 +11,8 @@
     "**/.pio": true,
     "**/build": true,
     "**/build-host": true
+  },
+  "idf.customExtraVars": {
+    "IDF_COMPONENT_MANAGER": "0"
   }
 }
