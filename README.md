@@ -64,18 +64,46 @@ do not include that dependency required by the pinned Espressif platform.
 
 ## GPS receiver and wiring
 
+### Recommended receiver
+
+Use the **Adafruit Ultimate GPS Breakout with GLONASS + GPS - PA1616D**,
+**product ID 5440**:
+
+- [Manufacturer product page / purchase link](https://www.adafruit.com/product/5440)
+- [Manufacturer pinout and wiring guide](https://learn.adafruit.com/adafruit-ultimate-gps/pinouts)
+
+This assembled breakout provides NMEA serial output at **9600 baud by default**,
+ESP32-compatible **3 V UART output**, and a **3.3-5 V VIN** supply input. Its
+GPS/GLONASS output can use the `GN` talker prefix, which this firmware supports.
+Use the existing `speed-gps` build with `SPEED_GPS_BAUD=9600` and confirm RMC output
+at least once per second; the firmware does not send receiver configuration commands.
+
+The built-in patch antenna is suitable when it has a clear sky view. For mounting
+under the Glastron's dash, use its **u.FL connector for an external 3 V active GPS
+antenna**, adding a u.FL-to-SMA adapter if required by the antenna connector.
+Mount the antenna where it can see the sky and protect the breakout and connections
+from water. This is a component recommendation; this receiver has not yet been
+tested with the physical gauge. Specifications checked on 2026-11-21; check current
+availability before ordering.
+
+### Connections
+
 Use a receiver/module that emits **NMEA RMC** (`GPRMC`, `GNRMC`, or another uppercase
 two-letter talker) through a **3.3 V logic UART**, **9600 baud, 8N1** by default.
 Match `SPEED_GPS_BAUD` to the actual receiver if different. Configure the receiver
 to output RMC at least once per second; sentence gaps over two seconds expire speed.
-Receiver/antenna part selection and supply voltage remain to be confirmed.
+The table below applies to the recommended Adafruit #5440 breakout.
 
 | Receiver connection | Display connection |
 |---|---|
-| TX, 3.3 V logic | External UART **RXD**, ESP32 **GPIO44** |
+| TX, 3 V logic output | External UART **RXD**, ESP32 **GPIO44** |
 | GND | GND |
 | RX | Leave unconnected; firmware sends no commands |
-| Module power | Supply specified by that module; confirm current/voltage first |
+| VIN | Clean regulated **5 V** supply; never the raw boat 12 V feed |
+
+Connect power to **VIN**, not the breakout's **3.3V regulator-output** pin.
+Keep receiver and display grounds common. Other receiver models need their own
+supply/interface check before using this wiring.
 
 The board's 4-pin UART header and 12-pin interface expose the same switched UART
 signals. Follow **signal labels**, not guessed connector order or wire colors.
