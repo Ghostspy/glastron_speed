@@ -1,0 +1,15 @@
+{
+  "files.associations": {
+    "*.h": "c"
+  },
+  "files.watcherExclude": {
+    "**/.pio/**": true,
+    "**/build/**": true,
+    "**/build-host/**": true
+  },
+  "search.exclude": {
+    "**/.pio": true,
+    "**/build": true,
+    "**/build-host": true
+  }
+}
