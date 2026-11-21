@@ -5,27 +5,37 @@ SDK: ESP-IDF 5.1.5; PlatformIO Espressif 32 6.5.0; LVGL 8.3.11.
 
 ## Verified in this workspace
 
-- `sh scripts/test-model.sh`: model, GPS parser and real UART provider pass with
+- `sh scripts/test-model.sh`: model, GPS parser, UBX setup and real UART provider pass with
   AddressSanitizer and UndefinedBehaviorSanitizer. Covers zero/empty, invalid and
   nonfinite values, independent two-second expiration, display/input bounds,
   long uptime, demo states, published RMC conversion, checksum failures, fix loss,
   measured vs simulated modes, noise/overflow, split streams and recovery.
+  UBX tests cover u-blox 6/7 version replies, alternate baud discovery,
+  checksum/length rejection, ACK/NAK and readback, timeout/fallback, custom baud,
+  and sufficient transmit drain time at 1200 baud. Provider tests run with
+  automatic setup enabled and disabled, simulate a 38400-baud receiver being
+  configured to 9600, and check binary/NMEA separation, short writes, driver
+  failures and baud scanning despite continuous framing errors.
 - Regression tests failed before their fixes for delayed sentence termination,
   malformed CR framing, persisted build/provider mismatch and UART backlog after
   a long application service gap; all pass after the fixes.
 - `cmake -S tests -B build-host -G Ninja -DCMAKE_BUILD_TYPE=Debug`,
   `cmake --build build-host`, and
-  `ctest --test-dir build-host --output-on-failure`: **16/16 pass**.
+  `ctest --test-dir build-host --output-on-failure`: **18/18 pass**.
   This includes provider guards, model, parser, UART shell, startup timing and
-  eleven actual C/LVGL rendering scenes. The host UART boundary validates
+  eleven actual C/LVGL rendering scenes, UBX setup and receive-only operation.
+  Build guards also reject a saved UART console when GPS TX uses GPIO43.
+  The host UART boundary validates
   application behavior, not electrical UART timing.
 - Demo and GPS PlatformIO builds both succeed and produce `firmware.bin`,
   bootloader and partition images in `.pio/build/speed/` and `.pio/build/speed-gps/`.
   The application image is not a combined offset-zero flash image.
-- Actual generated JSON configs confirm `speed`: demo=true, GPS=false;
-  `speed-gps`: demo=false, GPS=true; receiver baud defaults to 9600.
+- Actual generated JSON configs confirm `speed`: demo=true, GPS=false, UART0
+  console; `speed-gps`: demo=false, GPS=true, autoconfig=true, native USB
+  Serial/JTAG console; receiver baud defaults to 9600. Regeneration of the GPS
+  config from the defaults was exercised, not just a manually edited config.
 - Post-link PSRAM placement passes for both images. GPS image reports
-  16,744 bytes static internal RAM (5.1%) and 647,081 bytes flash (20.6% of the
+  17,112 bytes static internal RAM (5.2%) and approximately 650 KB flash (20.7% of the
   application partition). This is not a runtime heap/stack margin measurement.
 - Normal, GPS, night, low fuel, empty, missing, GPS waiting and startup PNGs were
   visually inspected. Labels and graphics fit the circular viewport.
@@ -64,6 +74,11 @@ runtime stability/heap/stack, real UART/mux operation, receiver cold start and f
 loss, speed accuracy, antenna installation, sunlight readability, fuel sender
 measurements/calibration and protected marine power/mounting.
 
-The GPS module and antenna remain unspecified. The code implements generic RMC
-reception; it does not configure a particular receiver. Fuel is simulated only in
-the demo and unavailable in the GPS build pending a real calibrated provider.
+GY-NEO6MV2/NEO-6M and GT-U7 are the user's available receiver candidates;
+Adafruit PA1616D remains the documented alternative with automatic setup disabled.
+No physical model was identified or exercised by the software tests. Verify both
+UART directions, native USB logs, startup discovery, missing RX wire, configuration
+ACK/readback, cold boot with changed saved baud/binary-only output, and power-cycle
+behavior. Saved non-8N1 framing or UBX input disabled requires manual setup.
+Fuel is simulated only in the demo and unavailable in the GPS build pending a
+real calibrated provider.

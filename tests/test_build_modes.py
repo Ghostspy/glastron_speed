@@ -23,4 +23,16 @@ with tempfile.TemporaryDirectory(prefix="speed-config-") as temporary:
                 capture_output=True, text=True,
             )
             assert (result.returncode == 0) == (gps_build == gps_selected), result.stdout + result.stderr
-print("PASS: demo/GPS environment selection cannot be overridden by persisted config")
+    for autoconfig, uart in ((False, True), (True, False), (True, True)):
+        (idf / "project.cmake").write_text(
+            "macro(project)\nendmacro()\n"
+            f"set(CONFIG_SPEED_GPS_AUTOCONFIG {'ON' if autoconfig else 'OFF'})\n"
+            f"set(CONFIG_ESP_CONSOLE_UART {'ON' if uart else 'OFF'})\n"
+        )
+        result = subprocess.run(
+            ["cmake", "-S", str(root), "-B", str(scratch / f"console-{autoconfig}-{uart}")],
+            env={**os.environ, "IDF_PATH": str(scratch / "idf")},
+            capture_output=True, text=True,
+        )
+        assert (result.returncode == 0) == (not (autoconfig and uart)), result.stdout + result.stderr
+print("PASS: provider selection and GPS TX/console conflict guards")

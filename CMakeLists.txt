@@ -11,6 +11,10 @@ endif()
 include($ENV{IDF_PATH}/tools/cmake/project.cmake)
 project(boat_speed)
 
+if(CONFIG_SPEED_GPS_AUTOCONFIG AND CONFIG_ESP_CONSOLE_UART)
+    message(FATAL_ERROR "GPS autoconfiguration uses GPIO43: select USB Serial/JTAG console in menuconfig, or regenerate the GPS sdkconfig to apply sdkconfig.gps.defaults.")
+endif()
+
 # Defaults seed new configs only. A persisted menuconfig choice must not turn a
 # named GPS build into a demo image (or a demo build into a hardware reader).
 if(BOAT_PLATFORMIO)

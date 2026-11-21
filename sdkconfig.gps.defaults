@@ -1,3 +1,8 @@
 # Applied after the shared sdkconfig.defaults, in the speed-gps environment.
 # CONFIG_SPEED_DEMO_MODE is not set
 CONFIG_SPEED_GPS_MODE=y
+CONFIG_SPEED_GPS_AUTOCONFIG=y
+# GPIO43 is GPS TX, so application and bootloader logs use native USB.
+# CONFIG_ESP_CONSOLE_UART_DEFAULT is not set
+CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG=y
+CONFIG_ESP_CONSOLE_SECONDARY_NONE=y

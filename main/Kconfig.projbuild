@@ -17,6 +17,17 @@ menu "Boat speedometer"
             be 3.3 V logic and connect to the board's switched RXD (GPIO44).
             Disconnect USB TO UART when receiving GPS; power via native USB.
 
+    config SPEED_GPS_AUTOCONFIG
+        bool "Detect/configure u-blox GPS at startup"
+        depends on SPEED_GPS_MODE
+        default y
+        help
+            Probe common baud rates and configure a responding u-blox receiver
+            for the selected baud, NMEA RMC, and one-second navigation in RAM.
+            Connect display TXD (GPIO43) to GPS RX, and GPS TX to RXD (GPIO44).
+            Requires native USB console; UART console logs conflict with GPS TX.
+            Disable for receive-only wiring or a non-u-blox receiver.
+
     config SPEED_DAY_BRIGHTNESS
         int "Day backlight percent"
         range 10 100

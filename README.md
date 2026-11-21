@@ -23,7 +23,8 @@ The source tree is independent of the tach project.
 
 **Fuel sender acquisition and marine power conditioning are not implemented.**
 Fuel below 15% is a provisional presentation threshold. No tank volume, range,
-engine RPM conversion, wireless service or GPS receiver configuration is assumed.
+engine RPM conversion or wireless service is assumed. GPS mode can detect and
+configure u-blox-compatible receivers at startup.
 Host/firmware validation does not establish physical sensor accuracy.
 
 ## Build in PlatformIO / VS Code
@@ -41,7 +42,9 @@ pio run -e speed-gps -t upload
 pio device monitor -e speed-gps
 ```
 
-Use **USB TO UART** to upload and monitor at 115200 baud. Ports are autodetected;
+Use **USB TO UART** to upload. Monitor demo firmware there at 115200 baud; GPS
+firmware logs use the **native USB** port so console text cannot enter GPS RX.
+Ports are autodetected;
 set `upload_port` and `monitor_port` if multiple devices are connected. Close the
 monitor before another program uses that port. These steps do not require GPS.
 
@@ -55,6 +58,12 @@ that environment's generated config and rebuild to restore its defaults. Under
 ```sh
 pio run -e speed-gps -t menuconfig
 ```
+
+**Existing GPS configurations:** this change needs the USB Serial/JTAG console.
+If the build rejects an older saved UART-console configuration, rename
+`sdkconfig.speed-gps` to a backup outside the project and rebuild to apply the new
+defaults (standalone IDF: back up `sdkconfig.gps`). Reapply custom settings after
+regeneration. The demo configuration keeps its UART console.
 
 The build's automatic PSRAM check verifies that LVGL's large arena is external,
 preserving internal DMA memory. Do not add another LVGL `lib_deps` copy.
@@ -75,8 +84,9 @@ Use the **Adafruit Ultimate GPS Breakout with GLONASS + GPS - PA1616D**,
 This assembled breakout provides NMEA serial output at **9600 baud by default**,
 ESP32-compatible **3 V UART output**, and a **3.3-5 V VIN** supply input. Its
 GPS/GLONASS output can use the `GN` talker prefix, which this firmware supports.
-Use the existing `speed-gps` build with `SPEED_GPS_BAUD=9600` and confirm RMC output
-at least once per second; the firmware does not send receiver configuration commands.
+Use the existing `speed-gps` build with `SPEED_GPS_BAUD=9600`. For this non-u-blox
+receiver, disable **Detect/configure u-blox GPS at startup** in menuconfig and
+confirm RMC output at least once per second. Its receive-only wiring is below.
 
 The built-in patch antenna is suitable when it has a clear sky view. For mounting
 under the Glastron's dash, use its **u.FL connector for an external 3 V active GPS
@@ -116,8 +126,60 @@ UART header**. To run with GPS, upload first, unplug USB TO UART, and power the
 board through its **native USB** port or a verified regulated supply. Keep USB TO
 UART disconnected while receiving GPS. Serial monitoring through that port will
 temporarily disconnect the GPS input; the UI then expires the speed reading.
-UART1 receives GPS on GPIO44; UART0 retains the 115200-baud diagnostic console.
-Do not connect the display TXD to GPS RX: console logs are not receiver commands.
+UART1 receives GPS on GPIO44. GPS-build diagnostic logs use native USB Serial/JTAG.
+For the receive-only Adafruit wiring, leave display TXD and GPS RX unconnected.
+
+### GY-NEO6MV2 / NEO-6M and GT-U7 automatic setup
+
+The GPS build enables `SPEED_GPS_AUTOCONFIG` by default. A GY-NEO6MV2 with a
+NEO-6M or a **u-blox-compatible GT-U7** can use the following wiring instead:
+
+| Receiver connection | Display / supply connection |
+|---|---|
+| TX / TXD, 3.3 V logic | RXD, GPIO44 |
+| RX / RXD, 3.3 V logic | **TXD, GPIO43** (required for configuration) |
+| GND | Common ground |
+| VCC | Clean regulated 5 V **only if that breakout is rated for 5 V input** |
+| PPS, if present | Leave unconnected |
+
+Common GY-NEO6MV2 and GT-U7 breakouts have an onboard regulator; check the exact
+board's supply rating. The bare NEO-6M module accepts only 2.7–3.6 V. Never apply
+boat battery voltage or 5 V logic to GPS/ESP32 UART pins. Follow printed signal
+labels; the connector order can differ between modules. Attach the supplied
+antenna, place it with sky visibility, and protect the assembly from water.
+
+Startup probes the configured baud first (9600 by default), then the other rates
+in **4800, 9600, 19200, 38400, 57600, 115200, 230400**, using 8N1. Only a valid
+UBX MON-VER response permits configuration. This detects protocol compatibility
+and reports receiver software/hardware versions; it cannot identify the carrier
+board or prove that its chip is genuine. A normal no-response scan takes about
+8.4 seconds and runs alongside the logo/display loop without sleeping.
+
+Once detected, the receiver gets UART1 settings for the selected baud, UBX/NMEA
+input/output, 1000 ms measurement/navigation updates, and RMC every solution.
+Port settings are read back after the baud switch; rate/message commands need
+matching ACKs and readback before logs say **GPS settings verified**. Changes
+apply in **RAM each startup**, with no EEPROM save or factory reset. Other
+receiver settings and message subscriptions are retained.
+
+Missing/negative/corrupt replies or a missing return wire cannot establish
+configuration success. After bounded retries the firmware listens for ordinary
+NMEA at `SPEED_GPS_BAUD`; restart the display to repeat discovery. No fix is needed
+for UBX detection, but speed remains unavailable until a valid satellite fix.
+Saved non-8N1 framing, UBX input disabled, unsupported baud rates, or excessive
+pre-existing message traffic may require manual receiver setup. A replacement or
+restarted receiver that loads different saved settings needs a display restart.
+
+Disable **Detect/configure u-blox GPS at startup** for receive-only wiring or
+non-u-blox receivers, and configure their NMEA baud/RMC rate separately. With the
+option enabled, plug into **native USB** to monitor detection/configuration logs;
+keep **USB TO UART unplugged**. ROM reset messages can briefly appear on GPIO43
+before the USB bootloader console takes over.
+
+References: [u-blox 6 protocol specification](https://content.u-blox.com/sites/default/files/products/documents/u-blox6_ReceiverDescrProtSpec_%28GPS.G6-SW-10018%29_Public.pdf),
+[GY-NEO6MV2 breakout specification](https://www.cytron.io/p-gy-neo6mv2-flight-control-gps-module),
+[GT-U7 vendor manual](https://shillehtek.com/blogs/shillehtek-product-manuals/gt-u7-gps-module-presoldered-1-manual).
+Both owned module types still require testing with the physical gauge.
 
 This switch behavior and pin map are documented in the
 [official Waveshare board interfaces](https://docs.waveshare.com/ESP32-S3-Touch-LCD-2.8C).
@@ -183,7 +245,8 @@ Gray corners mark pixels outside the physical circular panel.
 | `main/main.c` | Watchdog/event loop and explicit provider selection |
 | `main/speed_model.c` | Independent timestamped readings and demo scenarios |
 | `main/gps_nmea.c` | Host-testable streaming RMC parser |
-| `main/gps_uart.c` | Bounded ESP-IDF UART1 acquisition |
+| `main/gps_uart.c` | Bounded ESP-IDF UART1 acquisition and configuration transport |
+| `main/gps_ublox.c` | Host-testable UBX discovery, configuration and readback |
 | `main/speed_ui.c` | Sensor-independent LVGL face |
 | `main/speed_startup.c` | Nonblocking visible-time Glastron startup |
 
