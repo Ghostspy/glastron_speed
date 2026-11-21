@@ -37,10 +37,10 @@ one ESP-IDF application task. Demo and GPS builds are explicit and isolated.
 `speed_model_set_fuel(model, percent, now_ms)`, `speed_model_view(model, now_ms)`,
 `gps_nmea_feed(parser, byte, model, now_ms)`; timestamps are uint64_t milliseconds.
 
-- [ ] Write model and parser tests for the spec's normal and adverse cases.
-- [ ] Compile/run before implementation; expect missing symbols/files.
-- [ ] Implement the model and streaming checksum-checked parser.
-- [ ] Run `sh scripts/test-model.sh`; expect sanitized model and GPS tests to pass.
+- [x] Write model and parser tests for the spec's normal and adverse cases.
+- [x] Compile/run before implementation; expect missing symbols/files.
+- [x] Implement the model and streaming checksum-checked parser.
+- [x] Run `sh scripts/test-model.sh`; expect sanitized model and GPS tests to pass.
 
 ### Task 2: Matching display and firmware GPS provider
 
@@ -51,19 +51,19 @@ one ESP-IDF application task. Demo and GPS builds are explicit and isolated.
 **Interfaces:** Task 1 model and parser APIs; `gps_uart_init()`,
 `gps_uart_poll(model, now_ms)`, `speed_ui_create/update/set_night`.
 
-- [ ] Adapt renderer assertions for speed/fuel, stale/recovery and GPS statuses;
+- [x] Adapt renderer assertions for speed/fuel, stale/recovery and GPS statuses;
   run before the matching UI exists and confirm failure.
-- [ ] Reuse the tach board/assets/startup and implement the matching UI.
-- [ ] Add bounded UART1 ingestion and explicit demo/GPS configurations.
-- [ ] Run CMake host suite, render PNG previews and inspect them.
-- [ ] Build `speed` and `speed-gps`; check automatic PSRAM placement report.
+- [x] Reuse the tach board/assets/startup and implement the matching UI.
+- [x] Add bounded UART1 ingestion and explicit demo/GPS configurations.
+- [x] Run CMake host suite, render PNG previews and inspect them.
+- [x] Build `speed` and `speed-gps`; check automatic PSRAM placement report.
 
 ### Task 3: Documentation and final validation
 
 **Files:** `README.md`, `THIRD_PARTY.md`, `docs/validation.md`, previews.
 
-- [ ] Document builds, receiver requirements, header wiring, USB mux behavior,
+- [x] Document builds, receiver requirements, header wiring, USB mux behavior,
   sample expiry, parser limits, fuel integration hook and hardware acceptance.
-- [ ] Run the full host suite, sanitized tests and both firmware builds.
-- [ ] Review source/configuration for GPS/demo isolation and board conflicts.
-- [ ] Report verified results and remaining hardware work; leave changes reviewable.
+- [x] Run the full host suite, sanitized tests and both firmware builds.
+- [x] Review source/configuration for GPS/demo isolation and board conflicts.
+- [x] Report verified results and remaining hardware work; leave changes reviewable.

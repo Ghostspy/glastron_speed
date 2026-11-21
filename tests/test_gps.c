@@ -75,5 +75,15 @@ int main(void)
     }
     sentence(&p, &m, "GPRMC,123520,A,4807.038,N,01131.000,E,10,0,230394,,,A", UINT64_C(0x100000010));
     assert(m.speed_mph.valid && m.speed_mph.updated_ms == UINT64_C(0x100000010));
+    sentence(&p, &m, "GPRMC,123\r520,A,4807.038,N,01131.000,E,10,0,230394,,,A", 4500);
+    assert(m.speed_mph.updated_ms != 4500);
+    sentence(&p, &m, "GPRMC,123520,A,4807.038,N,01131.000,E,10,0,230394,,,A,V,extra", 4501);
+    assert(!m.speed_mph.valid);
+    /* A delayed terminator cannot rebrand an old fix as a new reading. */
+    feed(&p, &m, "$GPRMC,123519,A,4807.038,N,01131.000,E,022.4,084.4,230394,003.1,W*6A\r", 5000);
+    feed(&p, &m, "\n", 15000);
+    assert(m.speed_mph.updated_ms != 15000);
+    sentence(&p, &m, "GPRMC,123520,A,4807.038,N,01131.000,E,10,0,230394,,,A", 15001);
+    assert(m.speed_mph.valid && m.speed_mph.updated_ms == 15001);
     puts("PASS: RMC conversion, zero, checksum, fix validity, modes, bounds and stream recovery");
 }

@@ -10,3 +10,13 @@ if(BOAT_PLATFORMIO)
 endif()
 include($ENV{IDF_PATH}/tools/cmake/project.cmake)
 project(boat_speed)
+
+# Defaults seed new configs only. A persisted menuconfig choice must not turn a
+# named GPS build into a demo image (or a demo build into a hardware reader).
+if(BOAT_PLATFORMIO)
+    if(BOAT_GPS_BUILD AND NOT CONFIG_SPEED_GPS_MODE)
+        message(FATAL_ERROR "speed-gps requires GPS mode. Remove sdkconfig.speed-gps and rebuild.")
+    elseif(NOT BOAT_GPS_BUILD AND NOT CONFIG_SPEED_DEMO_MODE)
+        message(FATAL_ERROR "speed requires DEMO mode. Remove sdkconfig.speed and rebuild, or use speed-gps.")
+    endif()
+endif()

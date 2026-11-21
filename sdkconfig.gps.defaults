@@ -1,0 +1,3 @@
+# Applied after the shared sdkconfig.defaults, in the speed-gps environment.
+# CONFIG_SPEED_DEMO_MODE is not set
+CONFIG_SPEED_GPS_MODE=y

@@ -9,6 +9,7 @@
 typedef struct {
     char line[GPS_NMEA_LINE_SIZE];
     size_t length;
+    uint64_t started_ms;
     bool collecting;
 } gps_nmea_t;
 

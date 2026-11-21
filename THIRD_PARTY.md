@@ -1,5 +1,25 @@
 # Upstream resources
 
+## Companion project
+
+Board/runtime foundation, startup, generated assets and build helpers were adapted
+from `../tach` on 2026-11-21. This project keeps its own source and vendored LVGL;
+it does not require the tach tree at build time. The speed/fuel model, RMC parser
+and UART ingestion were added here. The upstream notices below are retained.
+
+## GPS protocol and board interfaces
+
+RMC field positions, data-validity status, mode indicators, knots and checksum:
+https://content.u-blox.com/sites/default/files/products/documents/u-blox8-M8_ReceiverDescrProtSpec_UBX-13003221.pdf
+
+UART pin map and FSUSB42UMX switch behavior (checked 2026-11-21):
+https://docs.waveshare.com/ESP32-S3-Touch-LCD-2.8C
+
+UART receive API:
+https://docs.espressif.com/projects/esp-idf/en/v5.1.5/esp32s3/api-reference/peripherals/uart.html
+
+The GPS parser is implemented locally; no GPS library source is incorporated.
+
 ## Glastron signature
 
 The loading screen uses the official website signature glyph (U+E90A):

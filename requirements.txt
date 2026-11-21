@@ -4,7 +4,7 @@
 # Optional CLI workflow; PlatformIO IDE for VS Code already supplies this tool.
 platformio==6.2.0
 
-# Regenerating main/tach_font_rpm.c and main/glastron_logo.c from source assets.
+# Regenerating main/speed_font.c and main/glastron_logo.c from source assets.
 Pillow==13.0.0
 
 # Standalone firmware packaging/flashing (scripts/package-firmware.py).

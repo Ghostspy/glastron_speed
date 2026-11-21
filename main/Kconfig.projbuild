@@ -1,0 +1,29 @@
+menu "Boat speedometer"
+    choice SPEED_SOURCE
+        prompt "Speed data source"
+        default SPEED_DEMO_MODE
+        config SPEED_DEMO_MODE
+            bool "Simulated speed and fuel (clearly marked DEMO)"
+        config SPEED_GPS_MODE
+            bool "Real GPS RMC speed over UART; fuel unavailable"
+    endchoice
+
+    config SPEED_GPS_BAUD
+        int "GPS UART baud rate (8N1)"
+        range 1200 115200
+        default 9600
+        help
+            Match the receiver's configured NMEA output rate. Receiver TX must
+            be 3.3 V logic and connect to the board's switched RXD (GPIO44).
+            Disconnect USB TO UART when receiving GPS; power via native USB.
+
+    config SPEED_DAY_BRIGHTNESS
+        int "Day backlight percent"
+        range 10 100
+        default 100
+
+    config SPEED_NIGHT_BRIGHTNESS
+        int "Night backlight percent"
+        range 1 100
+        default 20
+endmenu

@@ -9,3 +9,8 @@ for unit in model gps; do
         -lm -o "build-host/test-${unit}-sanitized"
     "./build-host/test-${unit}-sanitized"
 done
+"${CC:-cc}" -std=c11 -Wall -Wextra -Werror -pedantic \
+    -fsanitize=address,undefined -g -I main -I tests/fake_idf \
+    tests/test_uart.c main/gps_uart.c main/gps_nmea.c main/speed_model.c \
+    -lm -o build-host/test-uart-sanitized
+./build-host/test-uart-sanitized

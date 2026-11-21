@@ -56,7 +56,7 @@ static void parse(char *line, speed_model_t *model, uint64_t now_ms)
     float mph = NAN;
     const bool measured_mode = count == 12 || (count >= 13 && strlen(fields[12]) == 1 &&
                                                strchr("ADPRF", fields[12][0]) != NULL);
-    if (overflow || count < 12 || strcmp(fields[2], "A") || !measured_mode ||
+    if (overflow || count < 12 || count > 14 || strcmp(fields[2], "A") || !measured_mode ||
         !decimal_speed(fields[7], &mph)) mph = NAN;
     speed_model_set_speed(model, mph, now_ms);
 }
@@ -66,9 +66,15 @@ void gps_nmea_feed(gps_nmea_t *parser, char byte, speed_model_t *model, uint64_t
     if (byte == '$') {
         parser->collecting = true;
         parser->length = 0;
+        parser->started_ms = now_ms;
         return;
     }
     if (!parser->collecting) return;
+    if (now_ms < parser->started_ms || now_ms - parser->started_ms > SPEED_STALE_MS) {
+        parser->collecting = false;
+        parser->length = 0;
+        return;
+    }
     if (byte == '\n') {
         if (parser->length && parser->line[parser->length - 1] == '\r') --parser->length;
         parser->line[parser->length] = '\0';
@@ -77,7 +83,8 @@ void gps_nmea_feed(gps_nmea_t *parser, char byte, speed_model_t *model, uint64_t
         parser->length = 0;
         return;
     }
-    if (parser->length >= sizeof parser->line - 1 ||
+    if ((parser->length && parser->line[parser->length - 1] == '\r') ||
+        parser->length >= sizeof parser->line - 1 ||
         ((unsigned char)byte < 32 && byte != '\r') || (unsigned char)byte > 126) {
         parser->collecting = false;
         parser->length = 0;
