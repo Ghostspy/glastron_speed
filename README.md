@@ -2,7 +2,7 @@
 
 Companion to the adjacent `../tach` project, for the Glastron SSV-175 with the
 1984 Mercury 115 HP. Firmware targets the **Waveshare ESP32-S3-Touch-LCD-2.8C**,
-round 480 x 480, with ESP-IDF 5.1.5 and vendored LVGL 8.3.11.
+round 480 x 480, with ESP-IDF 5.4.4 and vendored LVGL 8.3.11.
 The source tree is independent of the tach project.
 
 ![Speedometer demo](previews/speed-normal.png)
@@ -32,8 +32,13 @@ Host/firmware validation does not establish physical sensor accuracy.
 Open this directory in VS Code with PlatformIO IDE (`platformio.platformio-ide`).
 Select **speed** for the USB demo or **speed-gps** for actual GPS input.
 The included Build, Upload and Monitor tasks use the selected environment.
-The first build downloads the pinned SDK/toolchain. Generated assets and LVGL
-sources are included; no additional graphics library installation is required.
+The first build downloads the pinned SDK/toolchain. PlatformIO Espressif 32 6.11.0
+uses ESP-IDF 5.4.4 and GCC 14.2.0 (`esp-14.2.0_20260121`). The local
+`scripts/espidf` package adapter downloads Espressif's complete official release,
+checks its SHA-256, and extracts the SDK components/tools. The upstream archive is
+about 2 GB and is cached in `.pio/core/.cache/downloads`; later builds reuse it.
+Generated assets and LVGL sources are included; no additional graphics library
+installation is required.
 
 ```sh
 pio run -e speed
@@ -67,9 +72,10 @@ regeneration. The demo configuration keeps its UART console.
 
 The build's automatic PSRAM check verifies that LVGL's large arena is external,
 preserving internal DMA memory. Do not add another LVGL `lib_deps` copy.
-If the CLI fails importing `pkg_resources`, use PlatformIO's Python 3.11 environment
-(as supplied by the VS Code extension). Some newer Homebrew Python environments
-do not include that dependency required by the pinned Espressif platform.
+Use the PlatformIO terminal in VS Code so the CLI and extension use the same
+PlatformIO Core. If a system `pio` reports an obsolete Core, use the extension's
+bundled Core (`~/.platformio/penv/bin/pio` on this Mac). After changing SDK versions,
+run **PlatformIO: Rebuild C/C++ Project Index** to refresh IntelliSense.
 
 ## GPS receiver and wiring
 
@@ -210,7 +216,7 @@ Inputs above 200 MPH are rejected as a software sanity bound; readings above
 60 MPH remain numeric while the display arc stops at its endpoint.
 
 Protocol references: [u-blox RMC description](https://content.u-blox.com/sites/default/files/products/documents/u-blox8-M8_ReceiverDescrProtSpec_UBX-13003221.pdf),
-[ESP-IDF 5.1.5 UART API](https://docs.espressif.com/projects/esp-idf/en/v5.1.5/esp32s3/api-reference/peripherals/uart.html).
+[ESP-IDF 5.4.4 UART API](https://docs.espressif.com/projects/esp-idf/en/v5.4.4/esp32s3/api-reference/peripherals/uart.html).
 
 ## Host tests and previews
 
@@ -259,12 +265,19 @@ assumed. Never connect a boat sender or 12 V feed directly to this board.
 
 ## Standalone ESP-IDF
 
-With ESP-IDF 5.1.5 activated:
+With ESP-IDF 5.4.4 activated:
 
 ```sh
+export IDF_COMPONENT_MANAGER=0
 idf.py build
 idf.py -B build-gps -DSDKCONFIG=sdkconfig.gps -DBOAT_GPS_BUILD=ON build
 ```
+
+The project defaults to `esp32s3` before IDF selects the compiler. If an existing
+`build`/`sdkconfig` was generated for `esp32`, back up any custom menuconfig
+settings and run `idf.py set-target esp32s3` once before building. The VS Code
+ESP-IDF extension also disables the component manager through workspace settings;
+LVGL is vendored locally. PlatformIO uses its separate `.pio` SDK and build tree.
 
 The first command builds the demo; the second uses separate GPS config/output.
 PlatformIO produces `firmware.elf`; standalone IDF produces `boat_speed.elf`.

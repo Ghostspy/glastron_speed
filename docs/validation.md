@@ -1,9 +1,48 @@
 # Validation - 2026-11-21
 
 Target: Waveshare ESP32-S3-Touch-LCD-2.8C, ESP32-S3, 16 MB flash, 8 MB PSRAM.
-SDK: ESP-IDF 5.1.5; PlatformIO Espressif 32 6.5.0; LVGL 8.3.11.
+Current SDK: ESP-IDF 5.4.4; PlatformIO Espressif 32 6.11.0; LVGL 8.3.11.
 
-## Verified in this workspace
+## ESP-IDF 5.4.4 migration
+
+- Reproduced the incomplete `/download/v5.4.4/...` package URL failure. The
+  official Espressif release ZIP has no PlatformIO manifest; pointing PlatformIO
+  directly at it incorrectly selects a nested cJSON test package. The local
+  `scripts/espidf` adapter supplies framework metadata and installs the official
+  SDK after checking its published SHA-256. It caches the complete release ZIP
+  and extracts components, tools and root configuration files.
+- Pinned GCC 14.2.0 `esp-14.2.0_20260121` for Xtensa and RISC-V, as required by
+  the 5.4.4 SDK. Updated the post-link objdump path for the unified Xtensa tools.
+- Replaced the deprecated RGB LCD `psram_trans_align` initializer with
+  `dma_burst_size`; application compilation retains `-Werror`.
+- Corrected the standalone build from `esp32` to `esp32s3`, with an early CMake
+  target default. Preserved the previous native sdkconfigs in temporary backups
+  before regenerating them. Workspace settings disable the component manager
+  because all required components are vendored, as in the PlatformIO workflow.
+- Using VS Code's bundled PlatformIO Core 6.2.0:
+  `~/.platformio/penv/bin/python -m platformio run -e speed -e speed-gps`:
+  **both succeed**, including bootloader, partition and application images and
+  both automatic PSRAM placement checks. GPS reports 19,600 bytes static internal
+  RAM and 644,508 bytes application flash. This does not measure runtime margins.
+- The native ESP-IDF 5.4.4 demo build succeeds and passes the standalone PSRAM
+  placement check. This automation session runs under Rosetta; the native SDK's
+  Python has ARM-only dependencies. Validation used a temporary ARM-only copy of
+  that same Python executable. The generated CMake settings were then restored
+  to the original installed interpreter for normal VS Code use.
+- `cmake -S tests -B build-host -G Ninja -DCMAKE_BUILD_TYPE=Debug`,
+  `cmake --build build-host`, `ctest --test-dir build-host --output-on-failure`:
+  **18/18 pass**, including provider/configuration guards and rendering tests.
+- The official download URL, TLS verification with PlatformIO's CA bundle, ZIP
+  header and full cached release checksum were exercised. No board was flashed.
+
+Build logs: `/tmp/boat-vscode-idf544-builds.log`,
+`/tmp/boat-native-idf544-build.log`, `/tmp/boat-host-idf544-tests.log`.
+
+## Original ESP-IDF 5.1.5 baseline
+
+The following records the earlier 5.1.5 / Espressif 32 6.5.0 validation.
+
+### Verified in this workspace
 
 - `sh scripts/test-model.sh`: model, GPS parser, UBX setup and real UART provider pass with
   AddressSanitizer and UndefinedBehaviorSanitizer. Covers zero/empty, invalid and
@@ -44,7 +83,7 @@ SDK: ESP-IDF 5.1.5; PlatformIO Espressif 32 6.5.0; LVGL 8.3.11.
   Parser framing/layout strictness was also corrected. No deferred source findings.
 - Working-tree and staged whitespace checks pass.
 
-## Local tool environment
+### Original local tool environment
 
 The existing tach SDK/compiler cache was copied into the ignored project-local
 `.pio/core` cache, retaining the pinned package versions. A fresh online download

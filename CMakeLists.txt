@@ -1,4 +1,7 @@
 cmake_minimum_required(VERSION 3.16)
+# This display uses an ESP32-S3. Native IDF otherwise defaults to ESP32 before
+# loading sdkconfig.defaults, which is too late to select the toolchain.
+set(IDF_TARGET "esp32s3" CACHE STRING "Target MCU")
 set(PROJECT_VER "0.1.0")
 if(BOAT_GPS_BUILD)
     set(SDKCONFIG_DEFAULTS "sdkconfig.defaults;sdkconfig.gps.defaults")
