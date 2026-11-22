@@ -89,8 +89,9 @@ void speed_ui_create(speed_ui_t *ui)
         }
     }
 
-    label(ui->screen, "GLASTRON", &lv_font_montserrat_18, WHITE, 130, 129, 220);
-    label(ui->screen, "SSV-175", &lv_font_montserrat_14, MUTED, 170, 158, 140);
+    label(ui->screen, "GLASTRON", &lv_font_montserrat_18, WHITE, 130, 104, 220);
+    label(ui->screen, "SSV-175", &lv_font_montserrat_14, MUTED, 170, 133, 140);
+    ui->course = label(ui->screen, "--", &lv_font_montserrat_18, MUTED, 130, 162, 220);
     ui->speed = label(ui->screen, "--", &speed_font, WHITE, 120, 187, 240);
     label(ui->screen, "MPH", &lv_font_montserrat_18, MUTED, 190, 278, 100);
     line(ui->screen, divider, 2, 1, TRACK);
@@ -122,7 +123,17 @@ void speed_ui_set_night(speed_ui_t *ui, bool night)
 
 void speed_ui_update(speed_ui_t *ui, const speed_view_t *view)
 {
-    char text[16];
+    static const char *const compass[] = {"N", "NE", "E", "SE", "S", "SW", "W", "NW"};
+    char text[32];
+    if (view->course_valid)
+        snprintf(text, sizeof text, "%s • %03d°T", compass[((view->course_deg + 22) / 45) % 8], view->course_deg);
+    else snprintf(text, sizeof text, "--");
+    if (strcmp(lv_label_get_text(ui->course), text)) {
+        strcpy(ui->course_text, text);
+        lv_label_set_text_static(ui->course, ui->course_text);
+    }
+    lv_obj_set_style_text_color(ui->course,
+        lv_color_hex(view->course_valid ? ui->night ? AMBER : BLUE : MUTED), 0);
     if (view->speed_valid) snprintf(text, sizeof text, "%d", view->mph);
     else snprintf(text, sizeof text, "--");
     if (strcmp(lv_label_get_text(ui->speed), text)) {

@@ -3,6 +3,28 @@
 Target: Waveshare ESP32-S3-Touch-LCD-2.8C, ESP32-S3, 16 MB flash, 8 MB PSRAM.
 Current SDK: ESP-IDF 5.4.4; PlatformIO Espressif 32 6.11.0; LVGL 8.3.11.
 
+## GPS course display
+
+- Added eight-point compass direction and rounded true course above the digital
+  speed (`NE • 045°T`), with blue/day and amber/night accents. Moved the branding
+  upward to retain the existing speed size and position.
+- RMC course is validated independently of speed. Missing/malformed course clears
+  direction while preserving valid speed; invalid fixes and UART failures clear
+  both. Course expires after two seconds and is suppressed below an unrounded
+  speed of 2 MPH. This cutoff is an initial display policy, not measured accuracy.
+- North remains valid at 0°, and a rounded 360° wraps to 000°. The explicitly
+  labelled demo includes simulated course; GPS mode uses receiver data only.
+- Host suite: **21/21 pass**. Added course bounds, missing/invalid data, independent
+  expiration, low-speed suppression, compass sector boundaries, north wrap,
+  display transitions, font glyph availability and placement above digital speed.
+- `sh scripts/test-model.sh`: all model/parser/UBX/UART checks pass with address
+  and undefined-behavior sanitizers, including receive-only and automatic setup.
+- Actual C/LVGL day, night, GPS and low-speed previews were visually inspected;
+  branding, course and speed do not overlap. Updated PNGs are in `previews/`.
+- Both `speed` and `speed-gps` firmware builds pass with ESP-IDF 5.4.4 using
+  VS Code's bundled PlatformIO Core, including both PSRAM placement checks.
+  Build log: `/tmp/boat-course-firmware-builds.log`. No board was flashed.
+
 ## ESP-IDF 5.4.4 migration
 
 - Reproduced the incomplete `/download/v5.4.4/...` package URL failure. The

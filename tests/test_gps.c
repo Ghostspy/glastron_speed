@@ -27,17 +27,22 @@ int main(void)
     assert(!m.speed_mph.valid);
     feed(&p, &m, "\n", 110);
     assert(fabsf(m.speed_mph.value - 25.77746f) < 0.001f);
+    assert(m.course_deg.valid && fabsf(m.course_deg.value - 84.4f) < 0.001f);
+    assert(m.course_deg.updated_ms == 110 && speed_model_view(&m, 110).course_deg == 84);
     assert(m.speed_mph.updated_ms == 110 && !m.demo && !m.fuel_percent.valid);
     /* Split/concatenated sentences, GN talker, valid zero, modern mode. */
     sentence(&p, &m, "GNRMC,123520,A,4807.038,N,01131.000,E,0.0,084.4,230394,,,A", 200);
     assert(speed_model_view(&m, 200).speed_valid && m.speed_mph.value == 0);
+    assert(!speed_model_view(&m, 200).course_valid);
     feed(&p, &m, "$GPRMC,123519,A,4807.038,N,01131.000,E,022.4,084.4,230394,003.1,W*00\r\n", 300);
     assert(m.speed_mph.updated_ms == 200);
+    assert(m.course_deg.updated_ms == 200);
     sentence(&p, &m, "GPGGA,123519,4807.038,N,01131.000,E,1,08,0.9,545.4,M,46.9,M,,", 400);
     assert(m.speed_mph.updated_ms == 200);
     assert(!speed_model_view(&m, 2201).speed_valid);
     sentence(&p, &m, "GNRMC,123520,V,,,,,,,230394,,,N", 2300);
     assert(!m.speed_mph.valid);
+    assert(!m.course_deg.valid);
     const char *bad[] = {"", "-1", "nan", "inf", "1e1", "2junk", " 2", "+2", "1.2.3", ".", "999999999999999999999999999999999999999"};
     for (unsigned i = 0; i < sizeof bad / sizeof *bad; ++i) {
         sentence(&p, &m, "GPRMC,123520,A,4807.038,N,01131.000,E,10,0,230394,,,A", 2500);
@@ -45,6 +50,7 @@ int main(void)
         snprintf(body, sizeof body, "GPRMC,123520,A,4807.038,N,01131.000,E,%s,0,230394,,,A", bad[i]);
         sentence(&p, &m, body, 2501);
         assert(!m.speed_mph.valid);
+        assert(!m.course_deg.valid);
     }
     const char *modes[] = {"N", "E", "M", "S", "X", "AA"};
     for (unsigned i = 0; i < sizeof modes / sizeof *modes; ++i) {
@@ -53,6 +59,7 @@ int main(void)
         snprintf(body, sizeof body, "GPRMC,123520,A,4807.038,N,01131.000,E,10,0,230394,,,%s", modes[i]);
         sentence(&p, &m, body, 2601);
         assert(!m.speed_mph.valid);
+        assert(!m.course_deg.valid);
     }
     /* A damaged/truncated stream cannot publish; a new '$' resynchronizes. */
     feed(&p, &m, "noise$GPRMC,broken", 2700);
@@ -85,5 +92,24 @@ int main(void)
     assert(m.speed_mph.updated_ms != 15000);
     sentence(&p, &m, "GPRMC,123520,A,4807.038,N,01131.000,E,10,0,230394,,,A", 15001);
     assert(m.speed_mph.valid && m.speed_mph.updated_ms == 15001);
-    puts("PASS: RMC conversion, zero, checksum, fix validity, modes, bounds and stream recovery");
+    /* Course errors clear direction independently of valid speed. */
+    const char *bad_course[] = {"", "-1", "360", "360.0", "361", "nan", "inf", "1e2", "+90", " 90", "90junk", "90.", ".5", "1.2.3", "999999999999999999999999999999999999999"};
+    for (unsigned i = 0; i < sizeof bad_course / sizeof *bad_course; ++i) {
+        sentence(&p, &m, "GNRMC,123520,A,4807.038,N,01131.000,E,10,45,230394,,,A", 16000);
+        assert(speed_model_view(&m, 16000).course_valid);
+        char body[200];
+        snprintf(body, sizeof body, "GNRMC,123520,A,4807.038,N,01131.000,E,10,%s,230394,,,A", bad_course[i]);
+        sentence(&p, &m, body, 16001);
+        assert(m.speed_mph.valid && !m.course_deg.valid);
+    }
+    sentence(&p, &m, "GPRMC,123520,A,4807.038,N,01131.000,E,10,0,230394,,,A", 17000);
+    assert(speed_model_view(&m, 17000).course_valid && m.course_deg.value == 0);
+    sentence(&p, &m, "GLRMC,123520,A,4807.038,N,01131.000,E,10,359.6,230394,,,D", 17001);
+    assert(speed_model_view(&m, 17001).course_deg == 0);
+    feed(&p, &m, "$GPRMC,123519,A,4807.038,N,01131.000,E,022.4,084.4,230394,003.1,W*00\r\n", 17002);
+    assert(m.course_deg.updated_ms == 17001);
+    assert(!speed_model_view(&m, 19002).course_valid);
+    sentence(&p, &m, "GNRMC,123520,V,4807.038,N,01131.000,E,10,45,230394,,,N", 19003);
+    assert(!m.speed_mph.valid && !m.course_deg.valid);
+    puts("PASS: RMC speed/course, independent validity, bounds, checksum and stream recovery");
 }

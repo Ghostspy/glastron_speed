@@ -5,6 +5,14 @@ void speed_model_set_speed(speed_model_t *model, float mph, uint64_t now_ms)
 {
     model->speed_mph = (speed_reading_t){mph, now_ms,
         isfinite(mph) && mph >= 0 && mph <= SPEED_INPUT_MAX_MPH};
+    if (!model->speed_mph.valid || mph < SPEED_COURSE_MIN_MPH)
+        model->course_deg.valid = false;
+}
+
+void speed_model_set_course(speed_model_t *model, float degrees_true, uint64_t now_ms)
+{
+    model->course_deg = (speed_reading_t){degrees_true, now_ms,
+        isfinite(degrees_true) && degrees_true >= 0 && degrees_true < 360};
 }
 
 void speed_model_set_fuel(speed_model_t *model, float percent, uint64_t now_ms)
@@ -29,6 +37,10 @@ speed_view_t speed_model_view(const speed_model_t *model, uint64_t now_ms)
     if (view.speed_valid) {
         view.mph = (int)(model->speed_mph.value + 0.5f);
         view.arc_mph = view.mph > SPEED_SCALE_MAX_MPH ? SPEED_SCALE_MAX_MPH : view.mph;
+        view.course_valid = model->speed_mph.value >= SPEED_COURSE_MIN_MPH &&
+                            fresh(model->course_deg, now_ms);
+        if (view.course_valid)
+            view.course_deg = (int)(model->course_deg.value + 0.5f) % 360;
     }
     if (view.fuel_valid) {
         view.fuel_percent = (int)(model->fuel_percent.value + 0.5f);
@@ -44,6 +56,7 @@ void speed_demo_sample(speed_model_t *model, uint64_t elapsed_ms, uint64_t now_m
     model->demo = true;
     if (t >= 38000u) {
         speed_model_set_speed(model, NAN, now_ms);
+        speed_model_set_course(model, NAN, now_ms);
         speed_model_set_fuel(model, NAN, now_ms);
         return;
     }
@@ -53,5 +66,7 @@ void speed_demo_sample(speed_model_t *model, uint64_t elapsed_ms, uint64_t now_m
     else if (t >= 26000u && t < 32000u) mph = 36 - 32.0f * (t - 26000u) / 6000.0f;
     else if (t >= 32000u) { mph = 4; fuel = t < 35000u ? 12 : 0; }
     speed_model_set_speed(model, mph, now_ms);
+    /* Simulated course stays explicitly under the DEMO indicator. */
+    speed_model_set_course(model, fmodf(45.0f + 270.0f * (float)t / 40000.0f, 360.0f), now_ms);
     speed_model_set_fuel(model, fuel, now_ms);
 }

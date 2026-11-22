@@ -12,21 +12,21 @@ static int hex_digit(char c)
     return -1;
 }
 
-static bool decimal_speed(const char *s, float *mph)
+static bool decimal_number(const char *s, float *value)
 {
     if (*s < '0' || *s > '9') return false;
-    float knots = 0, fraction = 0.1f;
+    float number = 0, fraction = 0.1f;
     bool point = false;
     unsigned digits_after_point = 0;
     for (; *s; ++s) {
         if (*s == '.' && !point) { point = true; continue; }
         if (*s < '0' || *s > '9') return false;
-        if (point) { knots += (*s - '0') * fraction; fraction *= 0.1f; ++digits_after_point; }
-        else knots = knots * 10 + (*s - '0');
-        if (!isfinite(knots) || knots * MPH_PER_KNOT > SPEED_INPUT_MAX_MPH) return false;
+        if (point) { number += (*s - '0') * fraction; fraction *= 0.1f; ++digits_after_point; }
+        else number = number * 10 + (*s - '0');
+        if (!isfinite(number)) return false;
     }
     if (point && !digits_after_point) return false;
-    *mph = knots * MPH_PER_KNOT;
+    *value = number;
     return true;
 }
 
@@ -53,12 +53,19 @@ static void parse(char *line, speed_model_t *model, uint64_t now_ms)
             fields[count++] = s + 1;
         }
     }
-    float mph = NAN;
+    float knots = NAN, mph = NAN, course = NAN;
     const bool measured_mode = count == 12 || (count >= 13 && strlen(fields[12]) == 1 &&
                                                strchr("ADPRF", fields[12][0]) != NULL);
-    if (overflow || count < 12 || count > 14 || strcmp(fields[2], "A") || !measured_mode ||
-        !decimal_speed(fields[7], &mph)) mph = NAN;
+    const bool valid_fix = !overflow && count >= 12 && count <= 14 &&
+        !strcmp(fields[2], "A") && measured_mode && decimal_number(fields[7], &knots) &&
+        knots * MPH_PER_KNOT <= SPEED_INPUT_MAX_MPH;
+    if (valid_fix) {
+        mph = knots * MPH_PER_KNOT;
+        /* A missing/malformed course must not discard an otherwise valid speed. */
+        if (!decimal_number(fields[8], &course) || course >= 360) course = NAN;
+    }
     speed_model_set_speed(model, mph, now_ms);
+    speed_model_set_course(model, course, now_ms);
 }
 
 void gps_nmea_feed(gps_nmea_t *parser, char byte, speed_model_t *model, uint64_t now_ms)

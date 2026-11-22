@@ -7,6 +7,7 @@
 typedef struct {
     lv_obj_t *screen;
     lv_obj_t *arc;
+    lv_obj_t *course;
     lv_obj_t *speed;
     lv_obj_t *fuel;
     lv_obj_t *fuel_caption;
@@ -15,6 +16,7 @@ typedef struct {
     lv_obj_t *theme_hint;
     bool night;
     char speed_text[16];
+    char course_text[32];
     char fuel_text[16];
 } speed_ui_t;
 

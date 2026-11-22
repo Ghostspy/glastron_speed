@@ -46,6 +46,6 @@ target_compile_options(test-startup PRIVATE -Wall -Wextra -Werror)
 target_link_libraries(test-startup PRIVATE lvgl-host m)
 add_test(NAME startup-timing COMMAND test-startup)
 
-foreach(SCENE normal low empty missing speed-missing fuel-missing gps gps-waiting stopped night startup)
+foreach(SCENE normal low empty missing speed-missing fuel-missing gps gps-waiting stopped night startup course-missing course-slow course-north)
     add_test(NAME render-${SCENE} COMMAND render-ui ${SCENE} ${CMAKE_CURRENT_BINARY_DIR}/${SCENE}.ppm)
 endforeach()

@@ -11,13 +11,19 @@ The source tree is independent of the tach project.
 
 - Matching black face, blue 270-degree **0-60 MPH** dial, large speed, fuel percent
   and bar. The dial endpoint is a display choice, not a boat speed specification.
+- Direction sits above the digital speed, for example **NE • 045°T**: eight-point
+  compass direction and GPS course relative to true north. It describes travel
+  over ground, not the direction the bow points while stopped or drifting.
 - The same official Glastron logo and SSV-175 ten-second startup as the tach.
 - Tap the face for day/night brightness (100% / 20%) and blue/amber accent.
-- `speed` build: explicit **DEMO** speed/fuel, with stopped, idle/no-wake,
+- `speed` build: explicit **DEMO** speed/fuel/course, with stopped, idle/no-wake,
   acceleration, cruise, low/empty fuel, and missing-data examples every 40 seconds.
 - `speed-gps` build: real UART GPS speed from checksum-checked NMEA RMC.
   It displays **GPS** with a valid fresh speed, **GPS UNAVAILABLE** otherwise.
   Fuel shows `-- %` / `Fuel unavailable`; it is never simulated in GPS mode.
+- Course shows `--` below **2 MPH**, without a valid fresh speed, or when the
+  course is missing, invalid or stale. The cutoff is a provisional display policy
+  to suppress low-speed GPS wander; it does not establish receiver accuracy.
 - Independent two-second expiration; invalid or stale readings become dashes and
   the related arc/bar clears. Valid zero means stopped or empty, not missing data.
 
@@ -204,6 +210,14 @@ clears speed immediately. In particular, simulated/manual/estimated positions
 cannot appear as measured speed. Navigation-status `V` at the end of modern RMC
 is distinct from the data-validity status and does not itself void the fix.
 
+The course field immediately after speed accepts strict nonnegative decimal
+degrees in `[0, 360)`. Missing/malformed course clears direction independently,
+preserving a valid speed. Void fixes and UART stream failures clear direction
+along with speed. The display rounds to whole degrees, wraps a rounded 360° to
+000°, and selects N/NE/E/SE/S/SW/W/NW. Course expires after two seconds and is shown
+only with fresh speed at or above 2 MPH, using the unrounded speed for this check.
+The existing RMC sentence and UART wiring supply both speed and direction.
+
 Bad checksums, incomplete/overlong lines, unsupported sentence types and stream
 noise never refresh sample age. `$` resynchronizes the stream. The parser has a
 160-byte fixed buffer, no dynamic allocation and no third-party GPS dependency.
@@ -240,7 +254,8 @@ It exercises the real UART provider against a small host IDF boundary, including
 buffer discard after service gaps, UART errors and recovery. Hardware UART timing
 and reception still require a board.
 Scenes: `normal`, `low`, `empty`, `missing`, `speed-missing`, `fuel-missing`, `gps`,
-`gps-waiting`, `stopped`, `night`, `startup`. PNG examples are in `previews/`.
+`gps-waiting`, `stopped`, `night`, `startup`, `course-missing`, `course-slow`,
+`course-north`. PNG examples are in `previews/`.
 Gray corners mark pixels outside the physical circular panel.
 
 ## Source map and fuel integration
