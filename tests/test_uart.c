@@ -98,9 +98,11 @@ int main(void)
     receive(fix);
     gps_uart_poll(&model, 10);
     assert(model.speed_mph.valid && !model.demo && !model.fuel_percent.valid);
+    assert(model.course_deg.valid && speed_model_view(&model, 10).course_valid);
     receive(fix); /* Already queued before the application stalls. */
     gps_uart_poll(&model, 3000);
     assert(flushes == 1 + 2*CONFIG_SPEED_GPS_AUTOCONFIG && !model.speed_mph.valid && buffered_size == 0);
+    assert(!model.course_deg.valid);
     receive(fix);
     gps_uart_poll(&model, 3010);
 #if CONFIG_SPEED_GPS_AUTOCONFIG
@@ -111,6 +113,7 @@ int main(void)
     error_event = UART_FIFO_OVF;
     gps_uart_poll(&model, 3020);
     assert(!model.speed_mph.valid);
+    assert(!model.course_deg.valid);
     receive(fix);
     gps_uart_poll(&model, 3030);
     assert(model.speed_mph.valid);
